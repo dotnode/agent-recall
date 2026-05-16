@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "agent-recall",
-      "description": "External session memory evidence layer for coding agents.",
+      "description": "Legacy source install for development. Requires Go on PATH and uses go run; use GitHub release artifacts for normal installation.",
       "source": {
         "source": "github",
         "repo": "dotnode/agent-recall"

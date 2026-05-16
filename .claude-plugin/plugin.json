@@ -1,6 +1,6 @@
 {
   "name": "agent-recall",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "External session memory evidence layer for coding agents.",
   "author": {
     "name": "dotnode"

@@ -42,3 +42,19 @@ jobs:
 
       - name: Build
         run: go build ./cmd/agent-recall
+
+      - name: Build plugin artifact
+        run: scripts/build-plugin.sh linux amd64
+
+      - name: Validate plugin artifact
+        run: |
+          tar -tzf dist/agent-recall-plugin-linux-amd64.tar.gz | grep 'agent-recall-plugin-linux-amd64/.claude-plugin/marketplace.json'
+          tar -tzf dist/agent-recall-plugin-linux-amd64.tar.gz | grep 'agent-recall-plugin-linux-amd64/plugins/agent-recall/.claude-plugin/plugin.json'
+          tar -tzf dist/agent-recall-plugin-linux-amd64.tar.gz | grep 'agent-recall-plugin-linux-amd64/plugins/agent-recall/bin/agent-recall'
+          tmpdir="$(mktemp -d)"
+          tar -xzf dist/agent-recall-plugin-linux-amd64.tar.gz -C "$tmpdir"
+          bin="$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall/bin/agent-recall"
+          plugin_version="$(python3 -c 'import json; print(json.load(open(".claude-plugin/plugin.json"))["version"])')"
+          test "$("$bin" version)" = "$plugin_version"
+          printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' | "$bin" mcp --store-dir "$tmpdir/store" | grep '"tools"'
+          ! grep -R 'go run ./cmd/agent-recall' "$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall"

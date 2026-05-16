@@ -21,14 +21,59 @@ go test ./...
 go build -o agent-recall ./cmd/agent-recall
 ```
 
-## Local development install
+## Recommended Claude Code install: packaged release artifact
 
-```bash
-go build -o agent-recall ./cmd/agent-recall
-./agent-recall install claude-code
+Use the packaged release artifact for normal Claude Code installs. It includes a precompiled platform-specific `bin/agent-recall` binary and does not require Go at runtime, which avoids MCP startup timeouts caused by a cold `go run` build cache in source installs.
+
+Download the asset matching your platform from the GitHub Release:
+
+| Platform | Asset |
+| --- | --- |
+| Linux x86_64 | `agent-recall-plugin-linux-amd64.tar.gz` |
+| Linux arm64 | `agent-recall-plugin-linux-arm64.tar.gz` |
+| macOS Intel | `agent-recall-plugin-darwin-amd64.tar.gz` |
+| macOS Apple Silicon | `agent-recall-plugin-darwin-arm64.tar.gz` |
+| Windows x86_64 | `agent-recall-plugin-windows-amd64.tar.gz` |
+
+Each archive expands to a local Claude Code marketplace bundle:
+
+```text
+agent-recall-plugin-linux-amd64/
+  .claude-plugin/marketplace.json
+  plugins/agent-recall/
+    .claude-plugin/plugin.json
+    .mcp.json
+    hooks/hooks.json
+    commands/recall-session.md
+    commands/memory-status.md
+    skills/agent-recall/SKILL.md
+    bin/agent-recall
 ```
 
-This merges local Claude Code settings and creates the MCP config, slash commands, and skill files for the current project.
+Install from a stable absolute path, not a temporary directory:
+
+```text
+/plugin marketplace add /absolute/path/to/agent-recall-plugin-linux-amd64
+/plugin install agent-recall@dotnode
+/reload-plugins
+```
+
+If you previously installed the legacy source marketplace, migrate by removing it first:
+
+```text
+/plugin uninstall agent-recall@dotnode
+/plugin marketplace remove dotnode
+/plugin marketplace add /absolute/path/to/agent-recall-plugin-linux-amd64
+/plugin install agent-recall@dotnode
+/reload-plugins
+```
+
+Verify the install with:
+
+```text
+/memory-status
+/recall-session compact 前我们说到哪了
+```
 
 ## Build plugin artifacts
 
@@ -50,25 +95,13 @@ Artifacts are written to `dist/`, for example:
 dist/agent-recall-plugin-linux-amd64.tar.gz
 ```
 
-Each plugin artifact contains:
-
-```text
-.claude-plugin/plugin.json
-.mcp.json
-hooks/hooks.json
-commands/recall-session.md
-commands/memory-status.md
-skills/agent-recall/SKILL.md
-bin/agent-recall
-```
-
 ## Claude Code installation options
 
-| Install path | Best for | Requires Go on `PATH` | `bin/agent-recall` source | Update path | Verify |
+| Install path | Status | Best for | Requires Go on `PATH` | Runtime command | Update path |
 | --- | --- | --- | --- | --- | --- |
-| Local development installer | Working from a source checkout | Yes, for building the local CLI first | The binary you build with `go build -o agent-recall ./cmd/agent-recall` | Rebuild and rerun `./agent-recall install claude-code` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
-| Marketplace source install | Installing this repository directly through Claude Code marketplace commands | Yes | Tracked launcher scripts in `bin/` that run `go run ./cmd/agent-recall` | `/plugin marketplace update dotnode`, `/plugin update agent-recall`, `/reload-plugins` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
-| Packaged release artifact | Installing a self-contained platform plugin bundle | No | Compiled platform binary copied into the release artifact | Download/install the newer release artifact, then `/reload-plugins` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
+| Packaged release artifact | Recommended | Normal Claude Code use | No | Precompiled bundled binary | Download/install the newer release artifact, then `/plugin marketplace update dotnode`, `/plugin update agent-recall`, `/reload-plugins` |
+| Local development installer | Development | Working from a source checkout | Yes, for building the local CLI first | The binary you build with `go build -o agent-recall ./cmd/agent-recall` | Rebuild and rerun `./agent-recall install claude-code` |
+| Marketplace source install | Legacy/development | Testing marketplace source behavior | Yes | Tracked launcher scripts in `bin/` that run `go run ./cmd/agent-recall` | `/plugin marketplace update dotnode`, `/plugin update agent-recall`, `/reload-plugins` |
 
 ### Local development install
 
@@ -81,7 +114,7 @@ This merges local Claude Code settings and creates the MCP config, slash command
 
 ### Marketplace source install
 
-This repository can be added as a Claude Code plugin marketplace:
+This repository can still be added directly as a Claude Code plugin marketplace for development and legacy source-install testing:
 
 ```text
 /plugin marketplace add dotnode/agent-recall
@@ -89,26 +122,7 @@ This repository can be added as a Claude Code plugin marketplace:
 /reload-plugins
 ```
 
-The marketplace entry uses the relative source `./` for compatibility with Claude Code versions that reject `source: "."` and may not support object-style GitHub sources. It installs this repository directly and includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`.
-
-To update an existing marketplace install after a new release:
-
-```text
-/plugin marketplace update dotnode
-/plugin update agent-recall
-/reload-plugins
-```
-
-### Packaged release artifacts
-
-Packaged release artifacts are self-contained and include a platform-specific compiled `bin/agent-recall` binary. They do not require Go at runtime.
-
-Verify any install with:
-
-```text
-/memory-status
-/recall-session compact 前我们说到哪了
-```
+The source marketplace installs this repository directly from GitHub and uses the tracked `bin/agent-recall` launcher scripts. Those launchers execute `go run ./cmd/agent-recall`, so this path requires Go on `PATH` and can be slow on first MCP startup with a cold Go build cache. Normal users should install the packaged release artifact instead.
 
 ## Optional third-party model synthesis
 

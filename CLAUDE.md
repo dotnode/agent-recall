@@ -64,14 +64,16 @@ MCP server 是 `internal/mcp/server.go` 中的最小 JSON-RPC stdio 实现。它
 
 Claude Code integration 有三种形式：
 
-1. Source/local installer：`internal/install/claude.go` 会为本地开发合并 `.claude/settings.local.json`、`.mcp.json`、commands 和 skill files。它通过解析 hook command 和 subcommand 来更新已有 agent-recall hooks，而不是使用宽松的 substring matching。
-2. Marketplace source install：`.claude-plugin/marketplace.json` 允许 `/plugin marketplace add dotnode/agent-recall` 以 `agent-recall@dotnode` 暴露 plugin。Plugin source 使用 object 形式 `{"source": "github", "repo": "dotnode/agent-recall"}`，因为 Claude Code 的 relative-path string source 仅支持指向 marketplace 仓库下的子目录（如 `"./plugins/x"`），无法用 `"./"` 或 `"."` 指向 marketplace 仓库根，旧版本上更会直接报 "unsupported source type"。Source marketplace installs 使用 tracked `bin/agent-recall` launcher scripts，这要求 `PATH` 中有 Go。
-3. Plugin packaging：root-level `.claude-plugin/plugin.json`、`hooks/hooks.json`、`.mcp.json`、`commands/` 和 `skills/` 会被 `scripts/build-plugin.sh` 复制到 platform-specific artifacts 中。
+1. Packaged release artifact：正式推荐路径。`scripts/build-plugin.sh` 会生成 per-platform local marketplace bundle；bundle root 包含 `.claude-plugin/marketplace.json`，真正的 plugin 位于 `plugins/agent-recall/`。Plugin payload 内含预编译 `bin/agent-recall`（Windows 为 `bin/agent-recall.exe`），因此运行时不需要 Go，也避免 source launcher 的冷 `go run` build cache 导致 MCP startup timeout。
+2. Source/local installer：`internal/install/claude.go` 会为本地开发合并 `.claude/settings.local.json`、`.mcp.json`、commands 和 skill files。它通过解析 hook command 和 subcommand 来更新已有 agent-recall hooks，而不是使用宽松的 substring matching。该路径适合开发者先用 `go build` 构建本地 binary，再运行 `./agent-recall install claude-code`。
+3. Marketplace source install：`.claude-plugin/marketplace.json` 仍允许 `/plugin marketplace add dotnode/agent-recall` 以 `agent-recall@dotnode` 暴露 plugin，但该路径仅用于 development/legacy source-install 测试。Plugin source 使用 object 形式 `{"source": "github", "repo": "dotnode/agent-recall"}`；source marketplace installs 使用 tracked `bin/agent-recall` launcher scripts，并在运行时执行 `go run ./cmd/agent-recall`，因此要求 `PATH` 中有 Go，且首次 MCP 启动可能因冷编译缓存超时。
 
 ## Plugin packaging model
 
-本仓库使用 per-platform plugin artifacts。每个 artifact 都包含一个 platform-specific binary，名称为 `bin/agent-recall`（Windows 上为 `bin/agent-recall.exe`），并包含相同的 plugin metadata 和 Claude Code resources。因此 hook 和 MCP configuration 可以直接调用 `agent-recall`，无需 platform-specific command names。
+本仓库使用 per-platform release artifacts 作为正式分发模型。每个 release artifact 是 local marketplace bundle，而不是 raw plugin root：bundle root 提供 `.claude-plugin/marketplace.json`，其 `source` 指向 `./plugins/agent-recall`；installable plugin payload 位于 `plugins/agent-recall/`。
 
-Tracked root `bin/agent-recall` 和 `bin/agent-recall.cmd` 文件是 marketplace installs 的 source-install launchers，不是 release binaries。Release builds 会在 `dist/` 中用 compiled platform binaries 替换它们。
+Plugin payload 包含 platform-specific binary，名称为 `bin/agent-recall`（Windows 上为 `bin/agent-recall.exe`），并包含相同的 plugin metadata、MCP config、hooks、commands 和 skills。因此正式 artifact 安装后的 MCP 和 hooks 会运行 bundled binary，而不是 `go run` launcher。
+
+Tracked root `bin/agent-recall` 和 `bin/agent-recall.cmd` 文件只服务 source marketplace installs，是 legacy/development launchers，不是 release binaries。Release builds 会在 `dist/` 中生成 compiled platform binaries 和 local marketplace bundle；不要把这些二进制提交到 Git。
 
 `dist/` 是 generated output，并且有意被 Git 忽略。
