@@ -64,17 +64,21 @@ bin/agent-recall
 
 ## Claude Code plugin installation
 
-One-command install in Claude Code after the `dotnode/agent-recall` marketplace has been added:
-
-```text
-/plugin install agent-recall@dotnode
-```
-
-For first-time setup, add the marketplace once, install the plugin, then reload plugins:
+This repository can be added as a Claude Code plugin marketplace:
 
 ```text
 /plugin marketplace add dotnode/agent-recall
 /plugin install agent-recall@dotnode
+/reload-plugins
+```
+
+The marketplace source installs this repository directly. It includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`. Packaged release artifacts remain self-contained and include a platform-specific compiled `bin/agent-recall` binary.
+
+To update an existing marketplace install after a new release:
+
+```text
+/plugin marketplace update dotnode
+/plugin update agent-recall
 /reload-plugins
 ```
 

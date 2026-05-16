@@ -1,0 +1,13 @@
+{
+  "name": "dotnode",
+  "owner": {
+    "name": "dotnode"
+  },
+  "plugins": [
+    {
+      "name": "agent-recall",
+      "description": "External session memory evidence layer for coding agents.",
+      "source": "."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "agent-recall source marketplace install requires Go on PATH. Use a packaged release artifact for a bundled binary." >&2
+  exit 127
+fi
+
+cd "$ROOT"
+exec go run ./cmd/agent-recall "$@"

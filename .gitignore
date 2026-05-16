@@ -1,5 +1,7 @@
 dist/
-bin/
+bin/*
+!bin/agent-recall
+!bin/agent-recall.cmd
 .agent-recall/
 *.test
 *.out
