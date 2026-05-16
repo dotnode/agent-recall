@@ -23,7 +23,7 @@ go build -o agent-recall ./cmd/agent-recall
 
 ## Recommended Claude Code install: packaged release artifact
 
-Use the packaged release artifact for normal Claude Code installs. It includes a precompiled platform-specific `bin/agent-recall` binary and does not require Go at runtime, which avoids MCP startup timeouts caused by a cold `go run` build cache in source installs.
+Use the packaged release artifact for normal Claude Code installs. It includes a precompiled platform-specific `bin/agent-recall` binary and does not require Go at runtime. Packaged hooks call that bundled binary through the plugin root path instead of relying on `PATH`, which avoids MCP or hook startup failures caused by source launchers or cold `go run` build caches.
 
 Download the asset matching your platform from the GitHub Release:
 

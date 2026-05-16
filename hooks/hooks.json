@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "agent-recall hook-sync"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/agent-recall\" hook-sync"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "agent-recall hook-flush"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/agent-recall\" hook-flush"
           }
         ]
       }

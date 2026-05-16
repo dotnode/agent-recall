@@ -23,10 +23,42 @@ mkdir -p "$BUNDLE_DIR/.claude-plugin" "$PLUGIN_DIR/.claude-plugin" "$PLUGIN_DIR/
 )
 
 cp "$ROOT/.claude-plugin/plugin.json" "$PLUGIN_DIR/.claude-plugin/plugin.json"
-cp -R "$ROOT/hooks" "$PLUGIN_DIR/hooks"
+mkdir -p "$PLUGIN_DIR/hooks"
 cp -R "$ROOT/commands" "$PLUGIN_DIR/commands"
 cp -R "$ROOT/skills" "$PLUGIN_DIR/skills"
 cp "$ROOT/.mcp.json" "$PLUGIN_DIR/.mcp.json"
+
+HOOK_BIN="agent-recall"
+if [[ "$OS" == "windows" ]]; then
+  HOOK_BIN="agent-recall.exe"
+fi
+
+python3 - "$PLUGIN_DIR/hooks/hooks.json" "$HOOK_BIN" <<'PY'
+import json
+import sys
+
+path, hook_bin = sys.argv[1], sys.argv[2]
+command = f'"${{CLAUDE_PLUGIN_ROOT}}/bin/{hook_bin}"'
+hooks = {
+    "hooks": {
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [{"type": "command", "command": f"{command} hook-sync"}],
+            }
+        ],
+        "PreCompact": [
+            {
+                "matcher": "",
+                "hooks": [{"type": "command", "command": f"{command} hook-flush"}],
+            }
+        ],
+    }
+}
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(hooks, f, indent=2)
+    f.write("\n")
+PY
 
 python3 - "$BUNDLE_DIR/.claude-plugin/marketplace.json" "$VERSION" <<'PY'
 import json

@@ -72,7 +72,7 @@ Claude Code integration 有三种形式：
 
 本仓库使用 per-platform release artifacts 作为正式分发模型。每个 release artifact 是 local marketplace bundle，而不是 raw plugin root：bundle root 提供 `.claude-plugin/marketplace.json`，其 `source` 指向 `./plugins/agent-recall`；installable plugin payload 位于 `plugins/agent-recall/`。
 
-Plugin payload 包含 platform-specific binary，名称为 `bin/agent-recall`（Windows 上为 `bin/agent-recall.exe`），并包含相同的 plugin metadata、MCP config、hooks、commands 和 skills。因此正式 artifact 安装后的 MCP 和 hooks 会运行 bundled binary，而不是 `go run` launcher。
+Plugin payload 包含 platform-specific binary，名称为 `bin/agent-recall`（Windows 上为 `bin/agent-recall.exe`），并包含相同的 plugin metadata、MCP config、hooks、commands 和 skills。Release artifact 的 hooks 由 `scripts/build-plugin.sh` 按平台生成，并通过 `${CLAUDE_PLUGIN_ROOT}/bin/agent-recall`（Windows 为 `.exe`）显式调用 bundled binary；不要依赖 hook shell 的 `PATH`。
 
 Tracked root `bin/agent-recall` 和 `bin/agent-recall.cmd` 文件只服务 source marketplace installs，是 legacy/development launchers，不是 release binaries。Release builds 会在 `dist/` 中生成 compiled platform binaries 和 local marketplace bundle；不要把这些二进制提交到 Git。
 

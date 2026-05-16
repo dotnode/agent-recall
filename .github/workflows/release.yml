@@ -55,6 +55,9 @@ jobs:
           tar -xzf dist/agent-recall-plugin-linux-amd64.tar.gz -C "$tmpdir"
           bin="$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall/bin/agent-recall"
           test "$("$bin" version)" = "${GITHUB_REF_NAME#v}"
+          grep '\${CLAUDE_PLUGIN_ROOT}/bin/agent-recall' "$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall/hooks/hooks.json"
+          tar -xOzf dist/agent-recall-plugin-windows-amd64.tar.gz agent-recall-plugin-windows-amd64/plugins/agent-recall/hooks/hooks.json | grep '\${CLAUDE_PLUGIN_ROOT}/bin/agent-recall.exe'
+          env -i HOME="$HOME" AGENT_RECALL_HOME="$tmpdir/hook-store" CLAUDE_PLUGIN_ROOT="$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall" /bin/sh -c '"${CLAUDE_PLUGIN_ROOT}/bin/agent-recall" hook-sync' < testdata/hooks/stop.json
           printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' | "$bin" mcp --store-dir "$tmpdir/store" | grep '"tools"'
           ! grep -R 'go run ./cmd/agent-recall' "$tmpdir/agent-recall-plugin-linux-amd64/plugins/agent-recall"
 
