@@ -72,7 +72,7 @@ This repository can be added as a Claude Code plugin marketplace:
 /reload-plugins
 ```
 
-The marketplace entry uses an explicit GitHub source for compatibility with Claude Code versions that do not support `source: "."` from remote marketplaces. It installs this repository directly and includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`. Packaged release artifacts remain self-contained and include a platform-specific compiled `bin/agent-recall` binary.
+The marketplace entry uses the relative source `./` for compatibility with Claude Code versions that reject `source: "."` and may not support object-style GitHub sources. It installs this repository directly and includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`. Packaged release artifacts remain self-contained and include a platform-specific compiled `bin/agent-recall` binary.
 
 To update an existing marketplace install after a new release:
 
