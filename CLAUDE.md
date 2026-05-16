@@ -65,7 +65,7 @@ MCP server 是 `internal/mcp/server.go` 中的最小 JSON-RPC stdio 实现。它
 Claude Code integration 有三种形式：
 
 1. Source/local installer：`internal/install/claude.go` 会为本地开发合并 `.claude/settings.local.json`、`.mcp.json`、commands 和 skill files。它通过解析 hook command 和 subcommand 来更新已有 agent-recall hooks，而不是使用宽松的 substring matching。
-2. Marketplace source install：`.claude-plugin/marketplace.json` 允许 `/plugin marketplace add dotnode/agent-recall` 以 `agent-recall@dotnode` 暴露 plugin；为兼容会拒绝 `.` 且可能不支持 object-style GitHub plugin sources 的 Claude Code 版本，source 使用相对路径 `./`。Source marketplace installs 使用 tracked `bin/agent-recall` launcher scripts，这要求 `PATH` 中有 Go。
+2. Marketplace source install：`.claude-plugin/marketplace.json` 允许 `/plugin marketplace add dotnode/agent-recall` 以 `agent-recall@dotnode` 暴露 plugin。Plugin source 使用 object 形式 `{"source": "github", "repo": "dotnode/agent-recall"}`，因为 Claude Code 的 relative-path string source 仅支持指向 marketplace 仓库下的子目录（如 `"./plugins/x"`），无法用 `"./"` 或 `"."` 指向 marketplace 仓库根，旧版本上更会直接报 "unsupported source type"。Source marketplace installs 使用 tracked `bin/agent-recall` launcher scripts，这要求 `PATH` 中有 Go。
 3. Plugin packaging：root-level `.claude-plugin/plugin.json`、`hooks/hooks.json`、`.mcp.json`、`commands/` 和 `skills/` 会被 `scripts/build-plugin.sh` 复制到 platform-specific artifacts 中。
 
 ## Plugin packaging model
