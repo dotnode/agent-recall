@@ -63,7 +63,13 @@ bin/agent-recall
 
 ## Claude Code plugin installation
 
-After publishing this repository as a Claude Code plugin marketplace, users can install with:
+One-command install in Claude Code after the `dotnode/agent-recall` marketplace has been added:
+
+```text
+/plugin install agent-recall@dotnode
+```
+
+For first-time setup, add the marketplace once, install the plugin, then reload plugins:
 
 ```text
 /plugin marketplace add dotnode/agent-recall
@@ -71,9 +77,10 @@ After publishing this repository as a Claude Code plugin marketplace, users can 
 /reload-plugins
 ```
 
-Then use:
+Verify the install with:
 
 ```text
+/memory-status
 /recall-session compact 前我们说到哪了
 ```
 
