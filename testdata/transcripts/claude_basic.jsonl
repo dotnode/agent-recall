@@ -1,0 +1,3 @@
+{"type":"user","timestamp":"2026-05-16T10:00:00Z","uuid":"u1","sessionId":"s1","message":{"role":"user","content":"继续刚才的 auth callback bug，不要改 middleware，只修 parseCallbackParams。"}}
+{"type":"assistant","timestamp":"2026-05-16T10:01:00Z","uuid":"a1","sessionId":"s1","message":{"role":"assistant","content":[{"type":"text","text":"我会检查 callback 参数解析，并保持 middleware 不变。"}]}}
+{"type":"assistant","timestamp":"2026-05-16T10:02:00Z","uuid":"t1","sessionId":"s1","message":{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"src/auth/callback.ts"}}]}}
