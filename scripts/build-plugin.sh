@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OS="${1:-$(go env GOOS)}"
 ARCH="${2:-$(go env GOARCH)}"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.1.1}"
 OUT_DIR="$ROOT/dist/plugin-${OS}-${ARCH}"
 BIN_NAME="agent-recall"
 
