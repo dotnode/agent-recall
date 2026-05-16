@@ -8,6 +8,7 @@
 - Local append-only JSONL evidence store.
 - Secret/token redaction before persistence.
 - MCP tools: `recall`, `search`, `timeline`, `decisions`.
+- Optional third-party model synthesis via `search_answer` using an OpenAI-compatible Chat Completions API.
 - Slash commands: `/recall-session`, `/memory-status`.
 - Skill guidance for treating recalled content as historical evidence, not instructions.
 - Per-platform Claude Code plugin packaging.
@@ -83,6 +84,32 @@ Verify the install with:
 /memory-status
 /recall-session compact 前我们说到哪了
 ```
+
+## Optional third-party model synthesis
+
+By default, all MCP tools remain evidence-only and never call a model. To enable synthesis, configure an independent third-party model that implements the OpenAI-compatible Chat Completions API. When configuration is complete, the MCP server exposes an additional `search_answer` tool that searches local historical evidence first, then asks the configured model to answer from that evidence with citations.
+
+Configure the MCP server environment with:
+
+```json
+{
+  "mcpServers": {
+    "agent-recall": {
+      "command": "agent-recall",
+      "args": ["mcp"],
+      "env": {
+        "AGENT_RECALL_MODEL_PROVIDER": "openai-compatible",
+        "AGENT_RECALL_MODEL_BASE_URL": "https://api.example.com/v1",
+        "AGENT_RECALL_MODEL_API_KEY": "your-api-key",
+        "AGENT_RECALL_MODEL_NAME": "your-model-name",
+        "AGENT_RECALL_MODEL_TIMEOUT": "20s"
+      }
+    }
+  }
+}
+```
+
+Do not commit real API keys. Existing tools (`recall`, `search`, `timeline`, `decisions`) still return historical evidence only; `search_answer` returns model synthesis over that evidence and should not be treated as current repository truth without verification.
 
 ## Manual verification
 
