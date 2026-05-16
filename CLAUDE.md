@@ -63,7 +63,7 @@ The MCP server is a minimal JSON-RPC stdio implementation in `internal/mcp/serve
 Claude Code integration has two forms:
 
 1. Source/local installer: `internal/install/claude.go` merges `.claude/settings.local.json`, `.mcp.json`, commands, and skill files for local development.
-2. Marketplace source install: `.claude-plugin/marketplace.json` lets `/plugin marketplace add dotnode/agent-recall` expose the root plugin source as `agent-recall@dotnode`. Source marketplace installs use the tracked `bin/agent-recall` launcher scripts, which require Go on `PATH`.
+2. Marketplace source install: `.claude-plugin/marketplace.json` lets `/plugin marketplace add dotnode/agent-recall` expose the plugin as `agent-recall@dotnode` using an explicit GitHub source entry for compatibility. Source marketplace installs use the tracked `bin/agent-recall` launcher scripts, which require Go on `PATH`.
 3. Plugin packaging: root-level `.claude-plugin/plugin.json`, `hooks/hooks.json`, `.mcp.json`, `commands/`, and `skills/` are copied into platform-specific artifacts by `scripts/build-plugin.sh`.
 
 ## Plugin packaging model
