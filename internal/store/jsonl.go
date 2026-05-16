@@ -59,16 +59,26 @@ func AppendRecords(dir string, records []EvidenceRecord) error {
 }
 
 func LoadRecords(dir string) ([]EvidenceRecord, error) {
+	records, _, err := loadRecords(dir)
+	return records, err
+}
+
+type loadStats struct {
+	BadLines int
+}
+
+func loadRecords(dir string) ([]EvidenceRecord, loadStats, error) {
 	f, err := os.Open(EventsPath(dir))
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil
+		return nil, loadStats{}, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, loadStats{}, err
 	}
 	defer f.Close()
 
 	var records []EvidenceRecord
+	stats := loadStats{}
 	seen := map[string]bool{}
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)
@@ -79,6 +89,7 @@ func LoadRecords(dir string) ([]EvidenceRecord, error) {
 		}
 		var rec EvidenceRecord
 		if err := json.Unmarshal(line, &rec); err != nil {
+			stats.BadLines++
 			continue
 		}
 		if rec.ID != "" && seen[rec.ID] {
@@ -87,7 +98,7 @@ func LoadRecords(dir string) ([]EvidenceRecord, error) {
 		seen[rec.ID] = true
 		records = append(records, rec)
 	}
-	return records, scanner.Err()
+	return records, stats, scanner.Err()
 }
 
 func Status(dir string) (StatusInfo, error) {
@@ -95,10 +106,11 @@ func Status(dir string) (StatusInfo, error) {
 	if info, err := os.Stat(EventsPath(dir)); err == nil {
 		st.StoreBytes = info.Size()
 	}
-	records, err := LoadRecords(dir)
+	records, stats, err := loadRecords(dir)
 	if err != nil {
 		return st, err
 	}
+	st.BadLines = stats.BadLines
 	st.Events = len(records)
 	sessions := map[string]bool{}
 	for _, rec := range records {
@@ -129,6 +141,9 @@ func WriteStatus(w io.Writer, st StatusInfo, jsonOut bool) error {
 	fmt.Fprintf(w, "Sessions:    %d\n", st.Sessions)
 	fmt.Fprintf(w, "Transcripts: %d\n", st.Transcripts)
 	fmt.Fprintf(w, "Bytes:       %d\n", st.StoreBytes)
+	if st.BadLines > 0 {
+		fmt.Fprintf(w, "Bad lines:   %d\n", st.BadLines)
+	}
 	if st.LastIngested != "" {
 		fmt.Fprintf(w, "Last sync:   %s\n", st.LastIngested)
 	}

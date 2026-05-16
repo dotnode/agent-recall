@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"agent-recall/internal/config"
@@ -153,33 +154,5 @@ func deriveDecisions(records []store.EvidenceRecord, now string) []store.Evidenc
 }
 
 func containsFold(s, substr string) bool {
-	return len(substr) == 0 || (len(s) >= len(substr) && indexFold(s, substr) >= 0)
-}
-
-func indexFold(s, substr string) int {
-	for i := 0; i+len(substr) <= len(s); i++ {
-		if equalFoldASCII(s[i:i+len(substr)], substr) {
-			return i
-		}
-	}
-	return -1
-}
-
-func equalFoldASCII(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		ca, cb := a[i], b[i]
-		if ca >= 'A' && ca <= 'Z' {
-			ca += 'a' - 'A'
-		}
-		if cb >= 'A' && cb <= 'Z' {
-			cb += 'a' - 'A'
-		}
-		if ca != cb {
-			return false
-		}
-	}
-	return true
+	return substr == "" || strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

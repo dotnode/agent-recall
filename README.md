@@ -62,7 +62,24 @@ skills/agent-recall/SKILL.md
 bin/agent-recall
 ```
 
-## Claude Code plugin installation
+## Claude Code installation options
+
+| Install path | Best for | Requires Go on `PATH` | `bin/agent-recall` source | Update path | Verify |
+| --- | --- | --- | --- | --- | --- |
+| Local development installer | Working from a source checkout | Yes, for building the local CLI first | The binary you build with `go build -o agent-recall ./cmd/agent-recall` | Rebuild and rerun `./agent-recall install claude-code` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
+| Marketplace source install | Installing this repository directly through Claude Code marketplace commands | Yes | Tracked launcher scripts in `bin/` that run `go run ./cmd/agent-recall` | `/plugin marketplace update dotnode`, `/plugin update agent-recall`, `/reload-plugins` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
+| Packaged release artifact | Installing a self-contained platform plugin bundle | No | Compiled platform binary copied into the release artifact | Download/install the newer release artifact, then `/reload-plugins` | `/memory-status`, `/recall-session compact 前我们说到哪了` |
+
+### Local development install
+
+```bash
+go build -o agent-recall ./cmd/agent-recall
+./agent-recall install claude-code
+```
+
+This merges local Claude Code settings and creates the MCP config, slash commands, and skill files for the current project.
+
+### Marketplace source install
 
 This repository can be added as a Claude Code plugin marketplace:
 
@@ -72,7 +89,7 @@ This repository can be added as a Claude Code plugin marketplace:
 /reload-plugins
 ```
 
-The marketplace entry uses the relative source `./` for compatibility with Claude Code versions that reject `source: "."` and may not support object-style GitHub sources. It installs this repository directly and includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`. Packaged release artifacts remain self-contained and include a platform-specific compiled `bin/agent-recall` binary.
+The marketplace entry uses the relative source `./` for compatibility with Claude Code versions that reject `source: "."` and may not support object-style GitHub sources. It installs this repository directly and includes lightweight `bin/agent-recall` launcher scripts that run the Go CLI from source, so source marketplace installs require Go on `PATH`.
 
 To update an existing marketplace install after a new release:
 
@@ -82,7 +99,11 @@ To update an existing marketplace install after a new release:
 /reload-plugins
 ```
 
-Verify the install with:
+### Packaged release artifacts
+
+Packaged release artifacts are self-contained and include a platform-specific compiled `bin/agent-recall` binary. They do not require Go at runtime.
+
+Verify any install with:
 
 ```text
 /memory-status

@@ -1,4 +1,5 @@
 dist/
+/agent-recall
 bin/*
 !bin/agent-recall
 !bin/agent-recall.cmd

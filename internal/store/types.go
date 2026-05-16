@@ -60,6 +60,7 @@ type StatusInfo struct {
 	Sessions     int       `json:"sessions"`
 	Transcripts  int       `json:"transcripts"`
 	StoreBytes   int64     `json:"store_bytes"`
+	BadLines     int       `json:"bad_lines,omitempty"`
 	LastIngested string    `json:"last_ingested,omitempty"`
 	CheckedAt    time.Time `json:"checked_at"`
 }

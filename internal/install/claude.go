@@ -153,7 +153,7 @@ func ensureHook(settings map[string]any, event, cmd string) (bool, error) {
 			if hm == nil {
 				continue
 			}
-			if strings.Contains(fmt.Sprint(hm["command"]), "agent-recall") {
+			if fmt.Sprint(hm["command"]) == cmd || isAgentRecallHookCommand(fmt.Sprint(hm["command"]), hookSubcommand(event)) {
 				if hm["command"] != cmd || hm["type"] != "command" {
 					hm["type"] = "command"
 					hm["command"] = cmd
@@ -165,6 +165,102 @@ func ensureHook(settings map[string]any, event, cmd string) (bool, error) {
 	}
 	hooksMap[event] = append(arr, entry)
 	return true, nil
+}
+
+func hookSubcommand(event string) string {
+	switch event {
+	case "PreCompact":
+		return "hook-flush"
+	default:
+		return "hook-sync"
+	}
+}
+
+func isAgentRecallHookCommand(cmd, subcommand string) bool {
+	fields := commandFields(cmd)
+	if len(fields) < 2 {
+		return false
+	}
+	idx := 0
+	if fields[idx] == "env" {
+		idx++
+		for idx < len(fields) && strings.Contains(fields[idx], "=") {
+			idx++
+		}
+	}
+	if idx+1 >= len(fields) {
+		return false
+	}
+	base := commandBase(fields[idx])
+	if base != "agent-recall" && base != "agent-recall.exe" {
+		return false
+	}
+	return fields[idx+1] == subcommand
+}
+
+func commandBase(path string) string {
+	path = filepath.Base(path)
+	if i := strings.LastIndex(path, `\`); i >= 0 {
+		return path[i+1:]
+	}
+	return path
+}
+
+func commandFields(cmd string) []string {
+	var fields []string
+	var b strings.Builder
+	var quote byte
+	inField := false
+	escaped := false
+	flush := func() {
+		if inField {
+			fields = append(fields, b.String())
+			b.Reset()
+			inField = false
+		}
+	}
+	for i := 0; i < len(cmd); i++ {
+		c := cmd[i]
+		if escaped {
+			b.WriteByte(c)
+			inField = true
+			escaped = false
+			continue
+		}
+		if quote != 0 {
+			if c == '\\' && quote == '"' {
+				escaped = true
+				continue
+			}
+			if c == quote {
+				quote = 0
+				inField = true
+				continue
+			}
+			b.WriteByte(c)
+			inField = true
+			continue
+		}
+		switch c {
+		case ' ', '\t', '\n', '\r':
+			flush()
+		case '\'', '"':
+			quote = c
+			inField = true
+		case '\\':
+			b.WriteByte(c)
+			inField = true
+		default:
+			b.WriteByte(c)
+			inField = true
+		}
+	}
+	if escaped {
+		b.WriteByte('\\')
+		inField = true
+	}
+	flush()
+	return fields
 }
 
 func ensureMCP(root map[string]any, exe, storeDir string) (bool, error) {
