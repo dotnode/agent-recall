@@ -1,5 +1,6 @@
 {
   "name": "dotnode",
+  "description": "Claude Code plugins maintained by dotnode.",
   "owner": {
     "name": "dotnode"
   },

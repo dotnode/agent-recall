@@ -35,6 +35,7 @@ import sys
 path, version = sys.argv[1], sys.argv[2]
 marketplace = {
     "name": "dotnode",
+    "description": "Claude Code plugins maintained by dotnode.",
     "owner": {"name": "dotnode"},
     "plugins": [
         {

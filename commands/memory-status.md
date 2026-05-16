@@ -1,3 +1,7 @@
+---
+description: Check whether agent-recall external session memory is recording events
+---
+
 请调用 agent-recall MCP server 的 timeline 工具，检查外部 session memory 是否正常记录。
 
 要求：

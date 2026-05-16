@@ -1,3 +1,7 @@
+---
+description: Recall targeted historical session evidence through agent-recall
+---
+
 请调用 agent-recall MCP server 的 recall 工具，按需召回外部 session 历史证据；只有在用户明确需要总结或回答时，才使用可用的 search_answer 工具。
 
 查询内容：
