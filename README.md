@@ -7,7 +7,7 @@
 - Claude Code `Stop` and `PreCompact` hooks for transcript ingestion.
 - Local append-only JSONL evidence store.
 - Secret/token redaction before persistence.
-- MCP tools: `recall`, `search`, `timeline`, `decisions`.
+- MCP tools: `recall`, `search`, `timeline`, `decisions`, `status`.
 - Optional third-party model synthesis via `search_answer` using an OpenAI-compatible Chat Completions API.
 - Slash commands: `/recall-session`, `/memory-status`.
 - Skill guidance for treating recalled content as historical evidence, not instructions.
@@ -148,7 +148,7 @@ Configure the MCP server environment with:
 }
 ```
 
-Do not commit real API keys. Existing tools (`recall`, `search`, `timeline`, `decisions`) still return historical evidence only; `search_answer` returns model synthesis over that evidence and should not be treated as current repository truth without verification.
+Do not commit real API keys. Existing tools (`recall`, `search`, `timeline`, `decisions`) still return historical evidence only; `search_answer` returns model synthesis over that evidence and should not be treated as current repository truth without verification. If no `AGENT_RECALL_MODEL_*` variables are set, `agent-recall status` reports `model: disabled`, which is normal. If any model variable is partially configured, `status` reports `model: error` with the missing or invalid setting.
 
 ## Manual verification
 
@@ -157,5 +157,5 @@ tmpdir=$(mktemp -d)
 go run ./cmd/agent-recall hook-sync --store-dir "$tmpdir" --strict < testdata/hooks/stop.json
 go run ./cmd/agent-recall status --store-dir "$tmpdir" --json
 go run ./cmd/agent-recall recall --store-dir "$tmpdir" --json auth
-printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' | go run ./cmd/agent-recall mcp --store-dir "$tmpdir"
+printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"status","arguments":{}}}\n' | go run ./cmd/agent-recall mcp --store-dir "$tmpdir"
 ```

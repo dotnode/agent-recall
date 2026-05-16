@@ -36,8 +36,10 @@ func ModelConfigFromEnv() (ModelConfig, error) {
 		Model:    strings.TrimSpace(os.Getenv(EnvModelName)),
 		Timeout:  DefaultModelTimeout,
 	}
-	if raw := strings.TrimSpace(os.Getenv(EnvModelTimeout)); raw != "" {
-		timeout, err := time.ParseDuration(raw)
+	rawTimeout := strings.TrimSpace(os.Getenv(EnvModelTimeout))
+	anyModelEnv := cfg.Provider != "" || cfg.BaseURL != "" || cfg.APIKey != "" || cfg.Model != "" || rawTimeout != ""
+	if rawTimeout != "" {
+		timeout, err := time.ParseDuration(rawTimeout)
 		if err != nil {
 			return ModelConfig{}, fmt.Errorf("invalid %s", EnvModelTimeout)
 		}
@@ -46,8 +48,11 @@ func ModelConfigFromEnv() (ModelConfig, error) {
 		}
 		cfg.Timeout = timeout
 	}
-	if cfg.Provider == "" {
+	if !anyModelEnv {
 		return cfg, nil
+	}
+	if cfg.Provider == "" {
+		return ModelConfig{}, fmt.Errorf("%s is required when any AGENT_RECALL_MODEL_* variable is set", EnvModelProvider)
 	}
 	if cfg.Provider != ModelProviderOpenAICompatible {
 		return ModelConfig{}, fmt.Errorf("unsupported %s %q", EnvModelProvider, cfg.Provider)

@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"agent-recall/internal/config"
+	"agent-recall/internal/diagnostics"
 	"agent-recall/internal/hooks"
 	"agent-recall/internal/install"
 	"agent-recall/internal/mcp"
 	"agent-recall/internal/search"
-	"agent-recall/internal/store"
 	"agent-recall/internal/version"
 )
 
@@ -63,8 +63,12 @@ func runHook(args []string, stdin io.Reader, stderr io.Writer, flush bool) error
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if err := hooks.Sync(stdin, hooks.SyncOptions{StoreDir: *storeDir, Flush: flush}); err != nil {
-		fmt.Fprintf(stderr, "agent-recall: %v\n", err)
+	report, err := hooks.SyncWithReport(stdin, hooks.SyncOptions{StoreDir: *storeDir, Flush: flush})
+	if warning := report.Warning(); warning != "" {
+		fmt.Fprintf(stderr, "agent-recall hook: %s\n", warning)
+	}
+	if err != nil {
+		fmt.Fprintf(stderr, "agent-recall hook error: %v\n", err)
 		if *strict {
 			return err
 		}
@@ -122,11 +126,8 @@ func runStatus(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	st, err := store.Status(dir)
-	if err != nil {
-		return err
-	}
-	return store.WriteStatus(stdout, st, *jsonOut)
+	diag := diagnostics.Check(dir, diagnostics.Options{MCPState: diagnostics.StateNotChecked})
+	return diagnostics.Write(stdout, diag, *jsonOut)
 }
 
 func runInstall(args []string, stdout io.Writer) error {

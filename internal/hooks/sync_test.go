@@ -81,6 +81,44 @@ func TestSyncFlushDerivesDecisionRecords(t *testing.T) {
 	}
 }
 
+func TestSyncReportsMalformedTranscriptLine(t *testing.T) {
+	dir := t.TempDir()
+	transcript := writeTranscript(t, []string{
+		`not-json`,
+		`{"type":"user","timestamp":"2026-05-16T10:00:00Z","uuid":"u1","sessionId":"s1","message":{"role":"user","content":"valid text"}}`,
+	})
+
+	report, err := SyncWithReport(hookInput(t, transcript), SyncOptions{StoreDir: dir})
+	if err == nil || !strings.Contains(err.Error(), "failed to parse") {
+		t.Fatalf("SyncWithReport() error = %v", err)
+	}
+	if report.ParseErrors != 1 || report.RecordsWritten != 1 {
+		t.Fatalf("report = %+v", report)
+	}
+	records, err := store.LoadRecords(dir)
+	if err != nil {
+		t.Fatalf("LoadRecords() error = %v", err)
+	}
+	if len(records) != 1 || records[0].Text != "valid text" {
+		t.Fatalf("records = %+v", records)
+	}
+}
+
+func TestSyncReportsNoExtractedText(t *testing.T) {
+	dir := t.TempDir()
+	transcript := writeTranscript(t, []string{
+		`{"type":"summary","timestamp":"2026-05-16T10:00:00Z","uuid":"u1","sessionId":"s1"}`,
+	})
+
+	report, err := SyncWithReport(hookInput(t, transcript), SyncOptions{StoreDir: dir})
+	if err == nil || !strings.Contains(err.Error(), "extracted no text") {
+		t.Fatalf("SyncWithReport() error = %v", err)
+	}
+	if report.EmptyTextSkipped != 1 || report.RecordsWritten != 0 {
+		t.Fatalf("report = %+v", report)
+	}
+}
+
 func TestContainsFoldHandlesUnicodeCase(t *testing.T) {
 	if !containsFold("DÉCIDED", "décided") {
 		t.Fatalf("expected Unicode case-insensitive match")

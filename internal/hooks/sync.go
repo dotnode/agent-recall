@@ -20,39 +20,69 @@ type SyncOptions struct {
 	Flush    bool
 }
 
+type SyncReport struct {
+	LinesRead        int
+	RecordsWritten   int
+	ParseErrors      int
+	EmptyTextSkipped int
+	DecisionsDerived int
+}
+
+func (r SyncReport) Warning() string {
+	switch {
+	case r.ParseErrors > 0:
+		return fmt.Sprintf("failed to parse %d transcript line(s); transcript schema or file contents may be invalid", r.ParseErrors)
+	case r.LinesRead > 0 && r.RecordsWritten == 0:
+		return fmt.Sprintf("read %d transcript line(s) but extracted no text; transcript schema may have changed", r.LinesRead)
+	default:
+		return ""
+	}
+}
+
 func Sync(stdin io.Reader, opts SyncOptions) error {
+	_, err := SyncWithReport(stdin, opts)
+	return err
+}
+
+func SyncWithReport(stdin io.Reader, opts SyncOptions) (SyncReport, error) {
 	input, err := ReadInput(stdin)
 	if err != nil {
-		return err
+		return SyncReport{}, err
 	}
 	dir, err := config.StoreDir(opts.StoreDir)
 	if err != nil {
-		return err
+		return SyncReport{}, err
 	}
 	lock, err := store.AcquireLock(dir)
 	if err != nil {
-		return err
+		return SyncReport{}, err
 	}
 	defer lock.Release()
 
 	cursorState, err := store.LoadCursor(dir)
 	if err != nil {
-		return err
+		return SyncReport{}, err
 	}
 	key := store.CursorKey(input.TranscriptPath)
 	cursor := cursorState.Transcripts[key]
 	result, err := transcript.ReadNew(input.TranscriptPath, cursor.Offset, cursor.Line)
 	if err != nil {
-		return err
+		return SyncReport{}, err
 	}
 
 	redactor := redact.Default()
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	var records []store.EvidenceRecord
 	lastID := cursor.LastRecordID
+	report := SyncReport{LinesRead: len(result.Lines)}
 	for _, line := range result.Lines {
 		parsed, err := transcript.Parse(line.Raw)
-		if err != nil || parsed.Text == "" {
+		if err != nil {
+			report.ParseErrors++
+			continue
+		}
+		if parsed.Text == "" {
+			report.EmptyTextSkipped++
 			continue
 		}
 		sessionID := input.SessionID
@@ -85,6 +115,7 @@ func Sync(stdin io.Reader, opts SyncOptions) error {
 			Redaction: store.RedactionInfo{Applied: redacted.Applied, Rules: redacted.Rules},
 		}
 		records = append(records, rec)
+		report.RecordsWritten++
 		lastID = id
 	}
 
@@ -95,10 +126,12 @@ func Sync(stdin io.Reader, opts SyncOptions) error {
 				decisionSource = existing
 			}
 		}
-		records = append(records, deriveDecisions(decisionSource, now)...)
+		decisions := deriveDecisions(decisionSource, now)
+		report.DecisionsDerived = len(decisions)
+		records = append(records, decisions...)
 	}
 	if err := store.AppendRecords(dir, records); err != nil {
-		return err
+		return report, err
 	}
 	info, statErr := os.Stat(input.TranscriptPath)
 	var size int64 = result.Size
@@ -108,7 +141,13 @@ func Sync(stdin io.Reader, opts SyncOptions) error {
 		modTime = info.ModTime()
 	}
 	cursorState.Transcripts[key] = store.UpdatedCursor(key, input.TranscriptPath, input.SessionID, result.Offset, result.Line, size, modTime, lastID)
-	return store.SaveCursor(dir, cursorState)
+	if err := store.SaveCursor(dir, cursorState); err != nil {
+		return report, err
+	}
+	if warning := report.Warning(); warning != "" {
+		return report, fmt.Errorf("%s", warning)
+	}
+	return report, nil
 }
 
 func normalizeKind(kind string) string {

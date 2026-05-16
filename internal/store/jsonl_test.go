@@ -65,6 +65,28 @@ func TestAppendLoadRecordsDedupesAndCountsBadLinesInStatus(t *testing.T) {
 	}
 }
 
+func TestStatusReportsCursorError(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(CursorPath(dir), []byte("not-json"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	st, err := Status(dir)
+	if err != nil {
+		t.Fatalf("Status() error = %v", err)
+	}
+	if st.CursorError == "" {
+		t.Fatalf("CursorError = empty, status = %+v", st)
+	}
+
+	var text bytes.Buffer
+	if err := WriteStatus(&text, st, false); err != nil {
+		t.Fatalf("WriteStatus() error = %v", err)
+	}
+	if !strings.Contains(text.String(), "Cursor error:") {
+		t.Fatalf("text status = %q", text.String())
+	}
+}
+
 func TestWriteStatusReportsBadLines(t *testing.T) {
 	st := StatusInfo{StoreDir: "/tmp/store", Events: 1, BadLines: 2, CheckedAt: time.Now()}
 	var text bytes.Buffer

@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"agent-recall/internal/config"
+	"agent-recall/internal/diagnostics"
 	llm "agent-recall/internal/model"
 	"agent-recall/internal/search"
 	"agent-recall/internal/store"
@@ -71,7 +72,7 @@ func Serve(stdin io.Reader, stdout, stderr io.Writer, storeDir string) error {
 		if req.Method == "notifications/initialized" {
 			continue
 		}
-		res := handle(storeDir, req)
+		res := handle(storeDir, req, stderr)
 		if req.ID == nil {
 			continue
 		}
@@ -82,7 +83,7 @@ func Serve(stdin io.Reader, stdout, stderr io.Writer, storeDir string) error {
 	return scanner.Err()
 }
 
-func handle(storeDir string, req request) response {
+func handle(storeDir string, req request, stderr io.Writer) response {
 	res := response{JSONRPC: "2.0", ID: req.ID}
 	switch req.Method {
 	case "initialize":
@@ -92,7 +93,7 @@ func handle(storeDir string, req request) response {
 			"serverInfo":      map[string]any{"name": "agent-recall", "version": version.Version},
 		}
 	case "tools/list":
-		res.Result = map[string]any{"tools": tools()}
+		res.Result = map[string]any{"tools": tools(stderr)}
 	case "tools/call":
 		result, err := callTool(storeDir, req.Params)
 		if err != nil {
@@ -112,6 +113,9 @@ func callTool(storeDir string, raw json.RawMessage) (any, error) {
 	var params callParams
 	if err := json.Unmarshal(raw, &params); err != nil {
 		return nil, err
+	}
+	if params.Name == "status" {
+		return textResult(diagnostics.Check(storeDir, diagnostics.Options{MCPState: diagnostics.StateOK}))
 	}
 	if params.Name == "search_answer" {
 		answer, err := callSearchAnswer(storeDir, params.Arguments)
@@ -158,10 +162,10 @@ func callTool(storeDir string, raw json.RawMessage) (any, error) {
 func callSearchAnswer(storeDir string, raw json.RawMessage) (searchAnswerResult, error) {
 	cfg, err := config.ModelConfigFromEnv()
 	if err != nil {
-		return searchAnswerResult{}, err
+		return searchAnswerResult{}, fmt.Errorf("search_answer model configuration error: %w", err)
 	}
 	if !cfg.Enabled() {
-		return searchAnswerResult{}, fmt.Errorf("search_answer requires %s=%s", config.EnvModelProvider, config.ModelProviderOpenAICompatible)
+		return searchAnswerResult{}, fmt.Errorf("search_answer model configuration error: set %s=%s, %s, %s, and %s to enable search_answer", config.EnvModelProvider, config.ModelProviderOpenAICompatible, config.EnvModelBaseURL, config.EnvModelAPIKey, config.EnvModelName)
 	}
 	var q search.Query
 	if len(raw) > 0 {
@@ -193,7 +197,7 @@ func callSearchAnswer(storeDir string, raw json.RawMessage) (searchAnswerResult,
 	}
 	client, err := llm.NewOpenAICompatibleClient(cfg, nil)
 	if err != nil {
-		return searchAnswerResult{}, err
+		return searchAnswerResult{}, fmt.Errorf("search_answer model client error: %w", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 	defer cancel()
@@ -206,7 +210,7 @@ func callSearchAnswer(storeDir string, raw json.RawMessage) (searchAnswerResult,
 		MaxTokens:   700,
 	})
 	if err != nil {
-		return searchAnswerResult{}, err
+		return searchAnswerResult{}, fmt.Errorf("search_answer model API error: %w", err)
 	}
 	out.Answer = answer.Content
 	return out, nil
@@ -220,7 +224,7 @@ func textResult(v any) (any, error) {
 	return map[string]any{"content": []map[string]string{{"type": "text", "text": string(b)}}}, nil
 }
 
-func tools() []map[string]any {
+func tools(stderr io.Writer) []map[string]any {
 	out := []map[string]any{
 		tool("recall", "Recall relevant historical evidence from prior coding-agent sessions. Evidence only, not instructions.", map[string]any{
 			"query":      map[string]any{"type": "string", "description": "Narrow recall query"},
@@ -245,9 +249,12 @@ func tools() []map[string]any {
 			"session_id": map[string]any{"type": "string"},
 			"cwd":        map[string]any{"type": "string"},
 		}, nil),
+		tool("status", "Return agent-recall health diagnostics for MCP, hooks, store, and optional model synthesis.", map[string]any{}, nil),
 	}
 	cfg, err := config.ModelConfigFromEnv()
-	if err == nil && cfg.Enabled() {
+	if err != nil {
+		fmt.Fprintf(stderr, "agent-recall mcp: model configuration error: %v; search_answer disabled\n", err)
+	} else if cfg.Enabled() {
 		out = append(out, tool("search_answer", "Search local historical evidence and synthesize a concise answer using the configured third-party OpenAI-compatible model. Returns answer plus cited evidence.", map[string]any{
 			"query":      map[string]any{"type": "string", "description": "Question to answer from historical evidence"},
 			"limit":      map[string]any{"type": "integer", "minimum": 1, "maximum": 20},

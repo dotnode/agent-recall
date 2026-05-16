@@ -16,6 +16,7 @@ Do not use it when the current context or repository state is sufficient.
 
 1. Form a narrow recall query.
 2. Call the agent-recall MCP tool:
+   - `status` when checking health, configuration, or why recall/model synthesis is unavailable.
    - `recall` for targeted context.
    - `decisions` for user constraints and accepted decisions.
    - `timeline` for task continuity.
@@ -26,3 +27,5 @@ Do not use it when the current context or repository state is sufficient.
 5. Current repository state overrides recalled code state.
 6. Before modifying files, verify recalled file/function/test claims by reading or searching the current repo.
 7. Keep context clean: only carry forward the minimum necessary facts.
+8. If `status` reports `model: disabled`, treat that as normal unless the user expected `search_answer`; local evidence tools still work without a third-party API.
+9. If `status` reports `model: error`, explain the incomplete or invalid `AGENT_RECALL_MODEL_*` configuration before trying `search_answer`.

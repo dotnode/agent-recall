@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,22 +11,50 @@ import (
 	"time"
 
 	"agent-recall/internal/config"
+	"agent-recall/internal/diagnostics"
 	"agent-recall/internal/store"
 )
 
 func TestToolsListModelDisabled(t *testing.T) {
 	clearModelEnv(t)
 
-	if hasTool(tools(), "search_answer") {
+	if hasTool(tools(io.Discard), "search_answer") {
 		t.Fatalf("search_answer should not be listed without model config")
+	}
+	if !hasTool(tools(io.Discard), "status") {
+		t.Fatalf("status should always be listed")
 	}
 }
 
 func TestToolsListModelEnabled(t *testing.T) {
 	setModelEnv(t, "https://models.example/v1")
 
-	if !hasTool(tools(), "search_answer") {
+	if !hasTool(tools(io.Discard), "search_answer") {
 		t.Fatalf("search_answer should be listed with model config")
+	}
+}
+
+func TestToolsListModelConfigError(t *testing.T) {
+	clearModelEnv(t)
+	t.Setenv(config.EnvModelBaseURL, "https://models.example/v1")
+
+	if hasTool(tools(io.Discard), "search_answer") {
+		t.Fatalf("search_answer should not be listed with incomplete model config")
+	}
+}
+
+func TestCallStatusToolReportsComponents(t *testing.T) {
+	clearModelEnv(t)
+	result, err := callTool(t.TempDir(), []byte(`{"name":"status","arguments":{}}`))
+	if err != nil {
+		t.Fatalf("callTool(status) error = %v", err)
+	}
+	status := decodeTextResult[diagnostics.Status](t, result)
+	if status.Components["mcp"].State != diagnostics.StateOK {
+		t.Fatalf("mcp component = %+v", status.Components["mcp"])
+	}
+	if status.Components["model"].State != diagnostics.StateDisabled {
+		t.Fatalf("model component = %+v", status.Components["model"])
 	}
 }
 

@@ -125,6 +125,8 @@ func Status(dir string) (StatusInfo, error) {
 	cursor, err := LoadCursor(dir)
 	if err == nil {
 		st.Transcripts = len(cursor.Transcripts)
+	} else {
+		st.CursorError = err.Error()
 	}
 	return st, nil
 }
@@ -143,6 +145,9 @@ func WriteStatus(w io.Writer, st StatusInfo, jsonOut bool) error {
 	fmt.Fprintf(w, "Bytes:       %d\n", st.StoreBytes)
 	if st.BadLines > 0 {
 		fmt.Fprintf(w, "Bad lines:   %d\n", st.BadLines)
+	}
+	if st.CursorError != "" {
+		fmt.Fprintf(w, "Cursor error: %s\n", st.CursorError)
 	}
 	if st.LastIngested != "" {
 		fmt.Fprintf(w, "Last sync:   %s\n", st.LastIngested)

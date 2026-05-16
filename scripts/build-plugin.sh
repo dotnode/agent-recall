@@ -44,13 +44,13 @@ hooks = {
         "Stop": [
             {
                 "matcher": "",
-                "hooks": [{"type": "command", "command": f"{command} hook-sync"}],
+                "hooks": [{"type": "command", "command": f"{command} hook-sync --strict"}],
             }
         ],
         "PreCompact": [
             {
                 "matcher": "",
-                "hooks": [{"type": "command", "command": f"{command} hook-flush"}],
+                "hooks": [{"type": "command", "command": f"{command} hook-flush --strict"}],
             }
         ],
     }

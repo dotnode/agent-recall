@@ -21,6 +21,29 @@ func TestModelConfigFromEnvDisabled(t *testing.T) {
 	}
 }
 
+func TestModelConfigFromEnvPartialWithoutProvider(t *testing.T) {
+	cases := []struct {
+		name string
+		env  string
+		val  string
+	}{
+		{name: "base url", env: EnvModelBaseURL, val: "https://models.example/v1"},
+		{name: "api key", env: EnvModelAPIKey, val: "test-key"},
+		{name: "model", env: EnvModelName, val: "test-model"},
+		{name: "timeout", env: EnvModelTimeout, val: "5s"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearModelEnv(t)
+			t.Setenv(tc.env, tc.val)
+			_, err := ModelConfigFromEnv()
+			if err == nil || !strings.Contains(err.Error(), EnvModelProvider) {
+				t.Fatalf("error = %v, want missing provider", err)
+			}
+		})
+	}
+}
+
 func TestModelConfigFromEnvOpenAICompatible(t *testing.T) {
 	clearModelEnv(t)
 	t.Setenv(EnvModelProvider, ModelProviderOpenAICompatible)

@@ -22,8 +22,8 @@ func TestClaudeCodeInstallsAndIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read settings: %v", err)
 	}
-	if hookCount(settings, "Stop") != 1 || hookCount(settings, "PreCompact") != 1 {
-		t.Fatalf("settings = %+v", settings)
+	if !settingsContainCommand(settings, "Stop", "--strict") || !settingsContainCommand(settings, "PreCompact", "--strict") {
+		t.Fatalf("hooks should be strict: %+v", settings)
 	}
 
 	out.Reset()
@@ -87,6 +87,23 @@ func TestClaudeCodeForceControlsTemplates(t *testing.T) {
 	}
 }
 
+func TestEnsureHookUpgradesExistingAgentRecallHookToStrict(t *testing.T) {
+	settings := map[string]any{"hooks": map[string]any{"Stop": []any{map[string]any{
+		"matcher": "",
+		"hooks":   []any{map[string]any{"type": "command", "command": "agent-recall hook-sync"}},
+	}}}}
+	changed, err := ensureHook(settings, "Stop", "agent-recall hook-sync --strict")
+	if err != nil {
+		t.Fatalf("ensureHook() error = %v", err)
+	}
+	if !changed {
+		t.Fatalf("expected existing hook to be upgraded")
+	}
+	if hookCount(settings, "Stop") != 1 || !settingsContainCommand(settings, "Stop", "--strict") {
+		t.Fatalf("settings = %+v", settings)
+	}
+}
+
 func TestEnsureHookDoesNotRewriteNonAgentRecallHook(t *testing.T) {
 	settings := map[string]any{"hooks": map[string]any{"Stop": []any{map[string]any{
 		"matcher": "",
@@ -128,6 +145,21 @@ func hookCount(settings map[string]any, event string) int {
 		count += len(m["hooks"].([]any))
 	}
 	return count
+}
+
+func settingsContainCommand(settings map[string]any, event, substr string) bool {
+	hooks := settings["hooks"].(map[string]any)
+	arr := hooks[event].([]any)
+	for _, item := range arr {
+		m := item.(map[string]any)
+		for _, h := range m["hooks"].([]any) {
+			hm := h.(map[string]any)
+			if strings.Contains(hm["command"].(string), substr) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func chdirTemp(t *testing.T) string {

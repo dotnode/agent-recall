@@ -58,9 +58,9 @@ Ingestion path 从 `internal/hooks/sync.go` 开始：Claude Code hooks 提供 `t
 
 Recall 在 `internal/search/search.go` 中实现。它扫描 stored evidence，应用简单 keyword scoring 和 filters，并返回 snippets；返回内容始终带有固定 notice，说明 recalled content 是 historical evidence，而不是 instructions。
 
-Optional model synthesis 由 `internal/config/model.go` 配置，并由 `internal/model/client.go` 使用 OpenAI-compatible Chat Completions protocol 基于 `net/http` 实现；不使用任何 vendor SDK。除非设置了 `AGENT_RECALL_MODEL_PROVIDER=openai-compatible`、`AGENT_RECALL_MODEL_BASE_URL`、`AGENT_RECALL_MODEL_API_KEY` 和 `AGENT_RECALL_MODEL_NAME`，否则 model features 默认禁用。
+Optional model synthesis 由 `internal/config/model.go` 配置，并由 `internal/model/client.go` 使用 OpenAI-compatible Chat Completions protocol 基于 `net/http` 实现；不使用任何 vendor SDK。除非设置了完整的 `AGENT_RECALL_MODEL_PROVIDER=openai-compatible`、`AGENT_RECALL_MODEL_BASE_URL`、`AGENT_RECALL_MODEL_API_KEY` 和 `AGENT_RECALL_MODEL_NAME`，否则 model synthesis 默认禁用；未设置任何 `AGENT_RECALL_MODEL_*` 时 `status` 会报告 `model: disabled`，部分配置或非法配置会报告 `model: error`。
 
-MCP server 是 `internal/mcp/server.go` 中的最小 JSON-RPC stdio 实现。它支持 `initialize`、`tools/list`、`tools/call`，并始终暴露 `recall`、`search`、`timeline` 和 `decisions`。当 model configuration 完整时，它还会暴露 `search_answer`，该工具会先搜索本地 evidence，再使用配置的第三方 model synthesis answer。MCP stdout 必须只输出 JSON-RPC；diagnostics 应写入 stderr。
+MCP server 是 `internal/mcp/server.go` 中的最小 JSON-RPC stdio 实现。它支持 `initialize`、`tools/list`、`tools/call`，并始终暴露 `recall`、`search`、`timeline`、`decisions` 和 `status`。`status` 会返回 MCP、hook、store、model 的组件化诊断；未配置第三方模型时 model 为 `disabled`，这是正常状态。当 model configuration 完整时，它还会暴露 `search_answer`，该工具会先搜索本地 evidence，再使用配置的第三方 model synthesis answer。MCP stdout 必须只输出 JSON-RPC；diagnostics 应写入 stderr。
 
 Claude Code integration 有三种形式：
 
