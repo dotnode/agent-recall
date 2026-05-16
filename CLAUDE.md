@@ -1,0 +1,65 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Common commands
+
+- Format Go code:
+  ```bash
+  gofmt -w cmd internal
+  ```
+- Run all tests:
+  ```bash
+  go test ./...
+  ```
+- Run a single package test:
+  ```bash
+  go test ./internal/transcript -run TestParseTextAndToolUse
+  ```
+- Build the CLI locally:
+  ```bash
+  go build -o agent-recall ./cmd/agent-recall
+  ```
+- Build the current-platform Claude Code plugin artifact:
+  ```bash
+  scripts/build-plugin.sh
+  ```
+- Build all release plugin artifacts:
+  ```bash
+  scripts/build-release.sh
+  ```
+- Exercise hook ingestion with fixture data:
+  ```bash
+  tmpdir=$(mktemp -d)
+  go run ./cmd/agent-recall hook-sync --store-dir "$tmpdir" --strict < testdata/hooks/stop.json
+  go run ./cmd/agent-recall recall --store-dir "$tmpdir" --json auth
+  ```
+- Check install changes without writing files:
+  ```bash
+  go run ./cmd/agent-recall install claude-code --dry-run
+  ```
+
+## Architecture overview
+
+`agent-recall` is a Go single-binary external memory evidence layer for coding agents. It does not auto-inject long summaries into Claude Code context. Instead, hooks record session transcript evidence out-of-band, and MCP tools let the agent recall targeted historical evidence only when needed.
+
+The CLI entrypoint is `cmd/agent-recall/main.go`, with subcommand routing in `internal/cli/cli.go`. The supported subcommands are `hook-sync`, `hook-flush`, `mcp`, `recall`, `status`, and `install claude-code`.
+
+The ingestion path starts in `internal/hooks/sync.go`: Claude Code hooks provide `transcript_path`, the transcript reader consumes only new JSONL lines using cursors, transcript parsing extracts message/tool text, redaction runs before persistence, and records are appended to the store. `hook-flush` also derives lightweight `decision` evidence from matching historical text.
+
+The local persistence layer is append-only JSONL in `internal/store`. `events.jsonl` stores `EvidenceRecord` values; `cursor.json` tracks transcript offsets; `store.lock` prevents concurrent hook writes. Store path resolution lives in `internal/config/paths.go` and supports `--store-dir`, `AGENT_RECALL_HOME`, then OS-specific defaults.
+
+Recall is implemented in `internal/search/search.go`. It scans stored evidence, applies simple keyword scoring and filters, and returns snippets wrapped with the fixed notice that recalled content is historical evidence, not instructions.
+
+The MCP server is a minimal JSON-RPC stdio implementation in `internal/mcp/server.go`. It supports `initialize`, `tools/list`, `tools/call`, and exposes `recall`, `search`, `timeline`, and `decisions`. MCP stdout must remain JSON-RPC only; diagnostics should go to stderr.
+
+Claude Code integration has two forms:
+
+1. Source/local installer: `internal/install/claude.go` merges `.claude/settings.local.json`, `.mcp.json`, commands, and skill files for local development.
+2. Plugin packaging: root-level `.claude-plugin/plugin.json`, `hooks/hooks.json`, `.mcp.json`, `commands/`, and `skills/` are copied into platform-specific artifacts by `scripts/build-plugin.sh`.
+
+## Plugin packaging model
+
+This repository uses per-platform plugin artifacts. Each artifact contains a platform-specific binary named `bin/agent-recall` (or `bin/agent-recall.exe` on Windows), plus the same plugin metadata and Claude Code resources. Hook and MCP configuration can therefore call `agent-recall` without platform-specific command names.
+
+`dist/` is generated output and intentionally ignored by Git.
