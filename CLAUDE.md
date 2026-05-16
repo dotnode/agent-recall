@@ -51,7 +51,9 @@ The local persistence layer is append-only JSONL in `internal/store`. `events.js
 
 Recall is implemented in `internal/search/search.go`. It scans stored evidence, applies simple keyword scoring and filters, and returns snippets wrapped with the fixed notice that recalled content is historical evidence, not instructions.
 
-The MCP server is a minimal JSON-RPC stdio implementation in `internal/mcp/server.go`. It supports `initialize`, `tools/list`, `tools/call`, and exposes `recall`, `search`, `timeline`, and `decisions`. MCP stdout must remain JSON-RPC only; diagnostics should go to stderr.
+Optional model synthesis is configured in `internal/config/model.go` and implemented in `internal/model/client.go` using the OpenAI-compatible Chat Completions protocol over `net/http`; no vendor SDK is used. Model features are disabled unless `AGENT_RECALL_MODEL_PROVIDER=openai-compatible`, `AGENT_RECALL_MODEL_BASE_URL`, `AGENT_RECALL_MODEL_API_KEY`, and `AGENT_RECALL_MODEL_NAME` are set.
+
+The MCP server is a minimal JSON-RPC stdio implementation in `internal/mcp/server.go`. It supports `initialize`, `tools/list`, `tools/call`, and always exposes `recall`, `search`, `timeline`, and `decisions`. When model configuration is complete, it also exposes `search_answer`, which searches local evidence first and then synthesizes an answer using the configured third-party model. MCP stdout must remain JSON-RPC only; diagnostics should go to stderr.
 
 Claude Code integration has two forms:
 
