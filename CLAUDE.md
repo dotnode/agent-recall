@@ -39,6 +39,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   go run ./cmd/agent-recall install claude-code --dry-run
   ```
 
+## Development workflow requirements
+
+- Every functional change must update this `CLAUDE.md` file when it changes commands, architecture, integration behavior, release behavior, or maintainer workflow.
+- Feature updates should be committed to Git after tests pass. Pushing those commits to the release branch is what triggers the release workflow, so keep feature commits accurate and release-ready.
+
 ## Architecture overview
 
 `agent-recall` is a Go single-binary external memory evidence layer for coding agents. It does not auto-inject long summaries into Claude Code context. Instead, hooks record session transcript evidence out-of-band, and MCP tools let the agent recall targeted historical evidence only when needed.
