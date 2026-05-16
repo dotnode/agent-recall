@@ -2,6 +2,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION="${VERSION:-$(cd "$ROOT" && go run ./cmd/agent-recall version)}"
+export VERSION
+
 TARGETS=(
   "linux amd64"
   "linux arm64"

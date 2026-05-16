@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check release version
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          if ! [[ "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must match vX.Y.Z"
+            exit 1
+          fi
+
+          plugin_version="$(python3 -c 'import json; print(json.load(open(".claude-plugin/plugin.json"))["version"])')"
+          cli_version="$(go run ./cmd/agent-recall version)"
+
+          test "$tag_version" = "$plugin_version"
+          test "$tag_version" = "$cli_version"
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal)"
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build release artifacts
+        run: VERSION="${GITHUB_REF_NAME#v}" scripts/build-release.sh
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum agent-recall-plugin-*.tar.gz > checksums.txt
+          sha256sum -c checksums.txt
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes
+
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/agent-recall-plugin-*.tar.gz \
+            dist/checksums.txt \
+            --clobber

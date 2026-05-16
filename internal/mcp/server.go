@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"agent-recall/internal/search"
+	"agent-recall/internal/version"
 )
 
 type request struct {
@@ -69,7 +70,7 @@ func handle(storeDir string, req request) response {
 		res.Result = map[string]any{
 			"protocolVersion": "2024-11-05",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
-			"serverInfo":      map[string]any{"name": "agent-recall", "version": "0.1.0"},
+			"serverInfo":      map[string]any{"name": "agent-recall", "version": version.Version},
 		}
 	case "tools/list":
 		res.Result = map[string]any{"tools": tools()}

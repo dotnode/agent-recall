@@ -17,7 +17,7 @@ mkdir -p "$OUT_DIR/bin"
 
 (
   cd "$ROOT"
-  CGO_ENABLED=0 GOOS="$OS" GOARCH="$ARCH" go build -trimpath -ldflags "-s -w" -o "$OUT_DIR/bin/$BIN_NAME" ./cmd/agent-recall
+  CGO_ENABLED=0 GOOS="$OS" GOARCH="$ARCH" go build -trimpath -ldflags "-s -w -X agent-recall/internal/version.Version=${VERSION}" -o "$OUT_DIR/bin/$BIN_NAME" ./cmd/agent-recall
 )
 
 cp -R "$ROOT/.claude-plugin" "$OUT_DIR/.claude-plugin"

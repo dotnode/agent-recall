@@ -12,9 +12,8 @@ import (
 	"agent-recall/internal/mcp"
 	"agent-recall/internal/search"
 	"agent-recall/internal/store"
+	"agent-recall/internal/version"
 )
-
-const version = "0.1.0"
 
 func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
@@ -36,7 +35,7 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) error {
 	case "install":
 		return runInstall(args[1:], stdout)
 	case "version", "--version", "-v":
-		fmt.Fprintln(stdout, version)
+		fmt.Fprintln(stdout, version.Version)
 		return nil
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
